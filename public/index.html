@@ -1,13 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lara — Personal Assistant</title>
-    <meta name="description" content="Lara is your AI-powered personal assistant with Google Calendar integration and web search.">
+    <meta name="description"
+        content="Lara is your AI-powered personal assistant with Google Calendar integration and web search.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        *, *::before, *::after {
+        *,
+        *::before,
+        *::after {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -40,7 +45,8 @@
             --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        html, body {
+        html,
+        body {
             height: 100%;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-primary);
@@ -115,8 +121,15 @@
         }
 
         @keyframes pulse-dot {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
         }
 
         .header-actions button {
@@ -277,7 +290,147 @@
             font-size: 14px;
             line-height: 1.6;
             word-break: break-word;
+        }
+
+        .message-row.user .bubble {
             white-space: pre-wrap;
+        }
+
+        /* ─── Markdown Styles ─────────────────────── */
+
+        .bubble p {
+            margin: 0 0 8px 0;
+        }
+
+        .bubble p:last-child {
+            margin-bottom: 0;
+        }
+
+        .bubble strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .bubble em {
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        .bubble a {
+            color: var(--accent-hover);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color var(--transition);
+        }
+
+        .bubble a:hover {
+            border-bottom-color: var(--accent-hover);
+        }
+
+        .bubble code {
+            background: rgba(124, 92, 252, 0.12);
+            color: var(--accent-hover);
+            padding: 2px 6px;
+            border-radius: 5px;
+            font-size: 13px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .bubble pre {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            margin: 8px 0;
+            overflow-x: auto;
+        }
+
+        .bubble pre code {
+            background: none;
+            padding: 0;
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+
+        .bubble ul,
+        .bubble ol {
+            margin: 6px 0;
+            padding-left: 20px;
+        }
+
+        .bubble li {
+            margin-bottom: 4px;
+        }
+
+        .bubble table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+
+        .bubble th {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-weight: 600;
+            text-align: left;
+            padding: 8px 12px;
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .bubble td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+
+        .bubble tr:last-child td {
+            border-bottom: none;
+        }
+
+        .bubble tr:hover td {
+            background: rgba(124, 92, 252, 0.05);
+        }
+
+        .bubble blockquote {
+            border-left: 3px solid var(--accent);
+            padding: 4px 12px;
+            margin: 8px 0;
+            color: var(--text-secondary);
+            background: rgba(124, 92, 252, 0.05);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        }
+
+        .bubble h1,
+        .bubble h2,
+        .bubble h3 {
+            color: var(--text-primary);
+            margin: 12px 0 6px;
+            font-weight: 600;
+        }
+
+        .bubble h1 {
+            font-size: 18px;
+        }
+
+        .bubble h2 {
+            font-size: 16px;
+        }
+
+        .bubble h3 {
+            font-size: 15px;
+        }
+
+        .bubble h1:first-child,
+        .bubble h2:first-child,
+        .bubble h3:first-child {
+            margin-top: 0;
+        }
+
+        .bubble hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 10px 0;
         }
 
         .message-row.user .bubble {
@@ -322,12 +475,27 @@
             animation: typingBounce 1.4s ease-in-out infinite;
         }
 
-        .typing-dot:nth-child(2) { animation-delay: 0.15s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.3s;
+        }
 
         @keyframes typingBounce {
-            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-            30% { transform: translateY(-6px); opacity: 1; }
+
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+
+            30% {
+                transform: translateY(-6px);
+                opacity: 1;
+            }
         }
 
         /* ─── Input Area ──────────────────────────── */
@@ -418,26 +586,56 @@
         /* ─── Animations ──────────────────────────── */
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* ─── Responsive ──────────────────────────── */
 
         @media (max-width: 600px) {
-            .header { padding: 12px 16px; }
-            .chat-area { padding: 16px; }
-            .input-area { padding: 12px 16px 20px; }
-            .message-row { max-width: 92%; }
-            .suggestions { flex-direction: column; align-items: center; }
+            .header {
+                padding: 12px 16px;
+            }
+
+            .chat-area {
+                padding: 16px;
+            }
+
+            .input-area {
+                padding: 12px 16px 20px;
+            }
+
+            .message-row {
+                max-width: 92%;
+            }
+
+            .suggestions {
+                flex-direction: column;
+                align-items: center;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="app">
 
@@ -463,10 +661,13 @@
             <div class="welcome" id="welcome-screen">
                 <div class="welcome-icon">✦</div>
                 <h2>Hey, I'm Lara</h2>
-                <p>Your personal AI assistant. I can search the web, manage your Google Calendar, and help with everyday tasks.</p>
+                <p>Your personal AI assistant. I can search the web, manage your Google Calendar, and help with everyday
+                    tasks.</p>
                 <div class="suggestions">
-                    <button class="suggestion" data-msg="What's on my calendar this week?">📅 My calendar this week</button>
-                    <button class="suggestion" data-msg="Schedule a meeting tomorrow at 10 AM for 1 hour">🗓️ Schedule a meeting</button>
+                    <button class="suggestion" data-msg="What's on my calendar this week?">📅 My calendar this
+                        week</button>
+                    <button class="suggestion" data-msg="Schedule a meeting tomorrow at 10 AM for 1 hour">🗓️ Schedule a
+                        meeting</button>
                     <button class="suggestion" data-msg="Search the web for latest AI news">🔍 Latest AI news</button>
                     <button class="suggestion" data-msg="What can you help me with?">💡 What can you do?</button>
                 </div>
@@ -476,14 +677,10 @@
         <!-- Input -->
         <div class="input-area">
             <div class="input-wrapper">
-                <textarea
-                    id="chat-input"
-                    placeholder="Message Lara..."
-                    rows="1"
-                    autofocus
-                ></textarea>
+                <textarea id="chat-input" placeholder="Message Lara..." rows="1" autofocus></textarea>
                 <button id="send-btn" title="Send message" disabled>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round">
                         <line x1="22" y1="2" x2="11" y2="13"></line>
                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                     </svg>
@@ -494,6 +691,13 @@
     </div>
 
     <script>
+
+        // Configuration & Setup
+        marked.setOptions({
+            breaks: true, // line breaks like ChatGPT
+            gfm: true     // GitHub markdown style
+        });
+
         const chatArea = document.getElementById('chat-area');
         const chatInput = document.getElementById('chat-input');
         const sendBtn = document.getElementById('send-btn');
@@ -572,7 +776,7 @@
 
                 const data = await res.json();
                 typingEl.remove();
-                appendMessage(data.message || 'Sorry, I couldn\'t process that.', 'ai');
+                appendMessage((data.message) || 'Sorry, I couldn\'t process that.', 'ai');
             } catch (err) {
                 typingEl.remove();
                 appendMessage('Something went wrong. Please make sure the server is running.', 'ai');
@@ -593,7 +797,13 @@
 
             const bubble = document.createElement('div');
             bubble.className = 'bubble';
-            bubble.textContent = text;
+
+            if (role === 'ai') {
+                // Render markdown for AI responses
+                bubble.innerHTML = marked.parse(text);
+            } else {
+                bubble.textContent = text;
+            }
 
             row.appendChild(avatar);
             row.appendChild(bubble);
@@ -622,4 +832,5 @@
         }
     </script>
 </body>
+
 </html>

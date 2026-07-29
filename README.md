@@ -10,6 +10,11 @@ An AI-powered personal assistant built with **LangGraph**, **Groq**, and **Googl
 - **Session Memory** — Maintains conversation context per session via LangGraph checkpointer
 - **Auto OAuth Flow** — Automatically opens browser for Google authentication on first run
 - **REST API** — Clean Express.js API for easy integration with any frontend
+- **Built-in Chat UI** — Dark-themed web interface served at `http://localhost:3000`
+
+## 🖼️ Screenshot
+
+![Chat UI](assets/chat-ui.png)
 
 ## 🏗️ Architecture
 
@@ -37,15 +42,19 @@ An AI-powered personal assistant built with **LangGraph**, **Groq**, and **Googl
 
 ```
 PersonalAssistance/
-├── server.js           # Express server with REST API & OAuth routes
-├── index.js            # Chat function entry point
-├── graph.js            # LangGraph state graph (LLM ↔ Tools loop)
-├── llm.js              # Groq LLM configuration with tool binding
-├── tools.js            # Tool definitions (web search + calendar CRUD)
-├── googleCalendar.js   # Google Calendar API wrapper (OAuth + operations)
-├── package.json        # Dependencies and project config
-├── .env                # Environment variables (not committed)
-└── .gitignore          # Git ignore rules
+├── public/
+│   └── index.html          # Chat UI (dark-themed)
+├── assets/
+│   └── chat-ui.png         # Screenshot for README
+├── server.js               # Express server with REST API & OAuth routes
+├── index.js                # Chat function entry point
+├── graph.js                # LangGraph state graph (LLM ↔ Tools loop)
+├── llm.js                  # Groq LLM configuration with tool binding
+├── tools.js                # Tool definitions (web search + calendar CRUD)
+├── googleCalendar.js       # Google Calendar API wrapper (OAuth + operations)
+├── package.json            # Dependencies and project config
+├── .env                    # Environment variables (not committed)
+└── .gitignore              # Git ignore rules
 ```
 
 ## 🚀 Getting Started
