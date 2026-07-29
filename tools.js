@@ -1,4 +1,3 @@
-
 import { tavily } from "@tavily/core";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { z } from 'zod';
@@ -29,7 +28,7 @@ const listCalendarEventsTool = tool(
   async function ({ maxResults, daysAhead }, config) {
     const refreshToken = config?.configurable?.refreshToken;
     if (!refreshToken) {
-      return "Google Calendar is not connected. Please click the 'Connect Calendar' button in the header to authenticate.";
+      return "Google Calendar is not connected. Please click the '+' icon next to the message input to connect your Google Calendar.";
     }
     try {
       const events = await listEvents({ refreshToken, maxResults, daysAhead });
@@ -44,7 +43,7 @@ const listCalendarEventsTool = tool(
   {
     name: "listCalendarEvents",
     description:
-      "List upcoming events from the user's Google Calendar. Use this when the user asks about their schedule, meetings, appointments, or calendar.",
+      "List upcoming events from the user's Google Calendar. Returns event details including Google Meet video call links (meetLink).",
     schema: z.object({
       maxResults: z
         .number()
@@ -61,13 +60,22 @@ const listCalendarEventsTool = tool(
 );
 
 const createCalendarEventTool = tool(
-  async function ({ summary, startDateTime, endDateTime, description, location }, config) {
+  async function ({ summary, startDateTime, endDateTime, description, location, timeZone, createMeetingLink }, config) {
     const refreshToken = config?.configurable?.refreshToken;
     if (!refreshToken) {
-      return "Google Calendar is not connected. Please click the 'Connect Calendar' button in the header to authenticate.";
+      return "Google Calendar is not connected. Please click the '+' icon next to the message input to connect your Google Calendar.";
     }
     try {
-      const result = await createEvent({ refreshToken, summary, startDateTime, endDateTime, description, location });
+      const result = await createEvent({
+        refreshToken,
+        summary,
+        startDateTime,
+        endDateTime,
+        description,
+        location,
+        timeZone,
+        createMeetingLink: createMeetingLink !== false
+      });
       return JSON.stringify(result, null, 2);
     } catch (err) {
       return `Error creating event: ${err.message}`;
@@ -76,15 +84,15 @@ const createCalendarEventTool = tool(
   {
     name: "createCalendarEvent",
     description:
-      "Create a new event on the user's Google Calendar. Use when the user wants to schedule a meeting, appointment, reminder, or any event.",
+      "Create a new event or meeting on the user's Google Calendar. Automatically generates a Google Meet video conference link (meetLink).",
     schema: z.object({
-      summary: z.string().describe("Title of the event"),
+      summary: z.string().describe("Title of the event or meeting"),
       startDateTime: z
         .string()
-        .describe("Start time in ISO 8601 format, e.g. 2025-07-26T10:00:00+05:30"),
+        .describe("Start time in ISO 8601 format, e.g. 2026-07-30T10:00:00+05:30"),
       endDateTime: z
         .string()
-        .describe("End time in ISO 8601 format, e.g. 2025-07-26T11:00:00+05:30"),
+        .describe("End time in ISO 8601 format, e.g. 2026-07-30T11:00:00+05:30"),
       description: z
         .string()
         .optional()
@@ -93,18 +101,37 @@ const createCalendarEventTool = tool(
         .string()
         .optional()
         .describe("Location of the event"),
+      timeZone: z
+        .string()
+        .optional()
+        .describe("Timezone e.g. 'Asia/Kolkata' or 'America/New_York'"),
+      createMeetingLink: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("Whether to generate a Google Meet video call link (default: true)"),
     }),
   },
 );
 
 const updateCalendarEventTool = tool(
-  async function ({ eventId, summary, startDateTime, endDateTime, description, location }, config) {
+  async function ({ eventId, summary, startDateTime, endDateTime, description, location, timeZone, createMeetingLink }, config) {
     const refreshToken = config?.configurable?.refreshToken;
     if (!refreshToken) {
-      return "Google Calendar is not connected. Please click the 'Connect Calendar' button in the header to authenticate.";
+      return "Google Calendar is not connected. Please click the '+' icon next to the message input to connect your Google Calendar.";
     }
     try {
-      const result = await updateEvent({ refreshToken, eventId, summary, startDateTime, endDateTime, description, location });
+      const result = await updateEvent({
+        refreshToken,
+        eventId,
+        summary,
+        startDateTime,
+        endDateTime,
+        description,
+        location,
+        timeZone,
+        createMeetingLink: !!createMeetingLink
+      });
       return JSON.stringify(result, null, 2);
     } catch (err) {
       return `Error updating event: ${err.message}`;
@@ -113,7 +140,7 @@ const updateCalendarEventTool = tool(
   {
     name: "updateCalendarEvent",
     description:
-      "Update an existing event on the user's Google Calendar. Use when the user wants to reschedule, rename, or change details of an event. You need the event ID (get it from listCalendarEvents first).",
+      "Update an existing event on the user's Google Calendar. You need the event ID (get it from listCalendarEvents first).",
     schema: z.object({
       eventId: z.string().describe("The ID of the event to update (from listCalendarEvents)"),
       summary: z
@@ -136,6 +163,14 @@ const updateCalendarEventTool = tool(
         .string()
         .optional()
         .describe("New location"),
+      timeZone: z
+        .string()
+        .optional()
+        .describe("Timezone e.g. 'Asia/Kolkata'"),
+      createMeetingLink: z
+        .boolean()
+        .optional()
+        .describe("Set to true to generate a Google Meet video call link if one doesn't exist"),
     }),
   },
 );
@@ -144,7 +179,7 @@ const deleteCalendarEventTool = tool(
   async function ({ eventId }, config) {
     const refreshToken = config?.configurable?.refreshToken;
     if (!refreshToken) {
-      return "Google Calendar is not connected. Please click the 'Connect Calendar' button in the header to authenticate.";
+      return "Google Calendar is not connected. Please click the '+' icon next to the message input to connect your Google Calendar.";
     }
     try {
       const result = await deleteEvent(refreshToken, eventId);
@@ -167,7 +202,7 @@ const getCalendarEventTool = tool(
   async function ({ eventId }, config) {
     const refreshToken = config?.configurable?.refreshToken;
     if (!refreshToken) {
-      return "Google Calendar is not connected. Please click the 'Connect Calendar' button in the header to authenticate.";
+      return "Google Calendar is not connected. Please click the '+' icon next to the message input to connect your Google Calendar.";
     }
     try {
       const result = await getEvent(refreshToken, eventId);
@@ -179,7 +214,7 @@ const getCalendarEventTool = tool(
   {
     name: "getCalendarEvent",
     description:
-      "Get full details of a specific calendar event including attendees. Use when the user asks for details about a particular event.",
+      "Get full details of a specific calendar event including attendees and Google Meet links.",
     schema: z.object({
       eventId: z.string().describe("The ID of the event (from listCalendarEvents)"),
     }),
