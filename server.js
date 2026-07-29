@@ -27,7 +27,7 @@ app.post('/chat', async (req, res) => {
     }
 
     const result = await ChatFn({ query: message, sessionId });
-    console.log(result);
+    // console.log(result);
     res.json(result);
 });
 
