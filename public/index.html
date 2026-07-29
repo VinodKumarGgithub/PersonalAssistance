@@ -157,22 +157,145 @@
             border-color: var(--accent);
         }
 
-        /* ─── Calendar Connect Button ─────────────── */
+        /* ─── Tools (+) Button & Popover ─────────── */
 
-        #cal-btn {
-            display: flex;
-            align-items: center;
-            gap: 6px;
+        .tools-container {
+            position: relative;
         }
 
-        #cal-btn.connected {
+        #tools-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all var(--transition);
+            line-height: 1;
+        }
+
+        #tools-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+
+        #tools-btn.has-connected {
+            color: var(--success);
             border-color: var(--success);
+        }
+
+        .tools-popover {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 6px;
+            min-width: 260px;
+            box-shadow: var(--shadow), 0 0 30px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.15s ease-out;
+            z-index: 100;
+            display: none;
+        }
+
+        .tools-popover.open {
+            display: block;
+        }
+
+        .tools-popover-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 10px 6px;
+        }
+
+        .tool-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background var(--transition);
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+            color: var(--text-primary);
+        }
+
+        .tool-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .tool-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .tool-icon.calendar {
+            background: rgba(66, 133, 244, 0.15);
+        }
+
+        .tool-icon.search {
+            background: rgba(124, 92, 252, 0.15);
+        }
+
+        .tool-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .tool-name {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .tool-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+
+        .tool-status {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .tool-status.connected {
+            background: rgba(52, 211, 153, 0.12);
             color: var(--success);
         }
 
-        #cal-btn.connected:hover {
-            border-color: var(--danger);
-            color: var(--danger);
+        .tool-status.not-connected {
+            background: rgba(136, 136, 168, 0.1);
+            color: var(--text-muted);
+        }
+
+        .tool-divider {
+            height: 1px;
+            background: var(--border-subtle);
+            margin: 4px 6px;
         }
 
         /* ─── Chat Area ───────────────────────────── */
@@ -676,7 +799,6 @@
                 </div>
             </div>
             <div class="header-actions">
-                <button id="cal-btn" title="Connect Google Calendar">📅 Connect Calendar</button>
                 <button id="new-chat-btn" title="Start new conversation">New Chat</button>
             </div>
         </header>
@@ -702,6 +824,29 @@
         <!-- Input -->
         <div class="input-area">
             <div class="input-wrapper">
+                <div class="tools-container">
+                    <button id="tools-btn" title="Connect tools">+</button>
+                    <div class="tools-popover" id="tools-popover">
+                        <div class="tools-popover-title">Tools</div>
+                        <button class="tool-item" id="tool-calendar">
+                            <div class="tool-icon calendar">📅</div>
+                            <div class="tool-info">
+                                <div class="tool-name">Google Calendar</div>
+                                <div class="tool-desc">View & manage events</div>
+                            </div>
+                            <span class="tool-status not-connected" id="cal-status">Connect</span>
+                        </button>
+                        <div class="tool-divider"></div>
+                        <button class="tool-item" disabled style="opacity:0.5;cursor:default;">
+                            <div class="tool-icon search">🔍</div>
+                            <div class="tool-info">
+                                <div class="tool-name">Web Search</div>
+                                <div class="tool-desc">Powered by Tavily</div>
+                            </div>
+                            <span class="tool-status connected">✓ Active</span>
+                        </button>
+                    </div>
+                </div>
                 <textarea id="chat-input" placeholder="Message Lara..." rows="1" autofocus></textarea>
                 <button id="send-btn" title="Send message" disabled>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
@@ -727,12 +872,28 @@
         const chatInput = document.getElementById('chat-input');
         const sendBtn = document.getElementById('send-btn');
         const newChatBtn = document.getElementById('new-chat-btn');
-        const calBtn = document.getElementById('cal-btn');
+        const toolsBtn = document.getElementById('tools-btn');
+        const toolsPopover = document.getElementById('tools-popover');
+        const toolCalendar = document.getElementById('tool-calendar');
+        const calStatus = document.getElementById('cal-status');
         const welcomeScreen = document.getElementById('welcome-screen');
 
         let sessionId = crypto.randomUUID();
         let isWaiting = false;
         let isCalConnected = false;
+
+        // ─── Tools Popover ─────────────────────────
+        toolsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toolsPopover.classList.toggle('open');
+        });
+
+        // Close popover when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!toolsPopover.contains(e.target) && e.target !== toolsBtn) {
+                toolsPopover.classList.remove('open');
+            }
+        });
 
         // ─── Calendar Auth ─────────────────────────
         async function checkCalendarStatus() {
@@ -740,27 +901,25 @@
                 const res = await fetch(`/auth/status?sessionId=${sessionId}`);
                 const data = await res.json();
                 isCalConnected = data.connected;
-                updateCalButton();
+                updateCalStatus();
             } catch (e) {
                 // Server might not be running
             }
         }
 
-        function updateCalButton() {
+        function updateCalStatus() {
             if (isCalConnected) {
-                calBtn.textContent = '✅ Calendar Connected';
-                calBtn.className = 'connected';
-                calBtn.id = 'cal-btn';
-                calBtn.title = 'Click to disconnect';
+                calStatus.textContent = '✓ Connected';
+                calStatus.className = 'tool-status connected';
+                toolsBtn.classList.add('has-connected');
             } else {
-                calBtn.textContent = '📅 Connect Calendar';
-                calBtn.className = '';
-                calBtn.id = 'cal-btn';
-                calBtn.title = 'Connect Google Calendar';
+                calStatus.textContent = 'Connect';
+                calStatus.className = 'tool-status not-connected';
+                toolsBtn.classList.remove('has-connected');
             }
         }
 
-        calBtn.addEventListener('click', async () => {
+        toolCalendar.addEventListener('click', async () => {
             if (isCalConnected) {
                 // Disconnect
                 if (confirm('Disconnect Google Calendar?')) {
@@ -770,7 +929,7 @@
                         body: JSON.stringify({ sessionId }),
                     });
                     isCalConnected = false;
-                    updateCalButton();
+                    updateCalStatus();
                 }
             } else {
                 // Open OAuth popup
@@ -783,13 +942,14 @@
                     `width=${w},height=${h},left=${left},top=${top}`
                 );
             }
+            toolsPopover.classList.remove('open');
         });
 
         // Listen for OAuth completion from popup
         window.addEventListener('message', (e) => {
             if (e.data?.type === 'oauth-complete') {
                 isCalConnected = true;
-                updateCalButton();
+                updateCalStatus();
             }
         });
 
@@ -832,7 +992,7 @@
             chatInput.style.height = 'auto';
             sendBtn.disabled = true;
             isCalConnected = false;
-            updateCalButton();
+            updateCalStatus();
             chatInput.focus();
         });
 
