@@ -83,16 +83,15 @@ GROQ_API_KEY="your-groq-api-key"
 TAVILY_API_KEY="your-tavily-api-key"
 GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
-GOOGLE_REFRESH_TOKEN=""  # Auto-populated after first OAuth flow
+OAUTH_REDIRECT_URI="http://localhost:3000/oauth/callback"
+ENCRYPTION_KEY="your-random-32-character-secret-key"
 ```
 
-### 3. Run the Server
+## 🔒 Security & Privacy
 
-```bash
-node server.js
-```
-
-On first run, if no `GOOGLE_REFRESH_TOKEN` is set, the server automatically opens your browser for Google OAuth authentication. The refresh token is saved to `.env` automatically.
+- **AES-256-GCM Encryption at Rest:** User refresh tokens stored in `data/lara.db` are encrypted using AES-256-GCM authenticated encryption using `ENCRYPTION_KEY`.
+- **Git Ignored Database:** The `data/` directory is excluded from git via `.gitignore`, so SQLite databases and token keys are never committed to open-source repositories.
+- **Dynamic Per-User OAuth:** OAuth refresh tokens are scoped per session and managed safely via local popup authentication.
 
 ## 📡 API Endpoints
 
