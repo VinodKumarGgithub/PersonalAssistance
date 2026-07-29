@@ -1,7 +1,7 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { app } from './graph.js';
 
-const ChatFn = async ({ query = null, sessionId = null } = {}) => {
+const ChatFn = async ({ query = null, sessionId = null, refreshToken = null } = {}) => {
     if (!query || !sessionId) return { message: '' };
 
     const res = await app.invoke({
@@ -11,7 +11,8 @@ const ChatFn = async ({ query = null, sessionId = null } = {}) => {
         ]
     }, {
         configurable: {
-            thread_id: String(sessionId)
+            thread_id: String(sessionId),
+            refreshToken: refreshToken,
         } 
     });
     

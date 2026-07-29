@@ -26,9 +26,13 @@ const searchTool = tool(
 // ─── Calendar Tools ────────────────────────────────────────
 
 const listCalendarEventsTool = tool(
-  async function ({ maxResults, daysAhead }) {
+  async function ({ maxResults, daysAhead }, config) {
+    const refreshToken = config?.configurable?.refreshToken;
+    if (!refreshToken) {
+      return "Google Calendar is not connected. Please click the 'Connect Calendar' button in the header to authenticate.";
+    }
     try {
-      const events = await listEvents({ maxResults, daysAhead });
+      const events = await listEvents({ refreshToken, maxResults, daysAhead });
       if (events.length === 0) {
         return "No upcoming events found.";
       }
@@ -57,9 +61,13 @@ const listCalendarEventsTool = tool(
 );
 
 const createCalendarEventTool = tool(
-  async function ({ summary, startDateTime, endDateTime, description, location }) {
+  async function ({ summary, startDateTime, endDateTime, description, location }, config) {
+    const refreshToken = config?.configurable?.refreshToken;
+    if (!refreshToken) {
+      return "Google Calendar is not connected. Please click the 'Connect Calendar' button in the header to authenticate.";
+    }
     try {
-      const result = await createEvent({ summary, startDateTime, endDateTime, description, location });
+      const result = await createEvent({ refreshToken, summary, startDateTime, endDateTime, description, location });
       return JSON.stringify(result, null, 2);
     } catch (err) {
       return `Error creating event: ${err.message}`;
@@ -90,9 +98,13 @@ const createCalendarEventTool = tool(
 );
 
 const updateCalendarEventTool = tool(
-  async function ({ eventId, summary, startDateTime, endDateTime, description, location }) {
+  async function ({ eventId, summary, startDateTime, endDateTime, description, location }, config) {
+    const refreshToken = config?.configurable?.refreshToken;
+    if (!refreshToken) {
+      return "Google Calendar is not connected. Please click the 'Connect Calendar' button in the header to authenticate.";
+    }
     try {
-      const result = await updateEvent({ eventId, summary, startDateTime, endDateTime, description, location });
+      const result = await updateEvent({ refreshToken, eventId, summary, startDateTime, endDateTime, description, location });
       return JSON.stringify(result, null, 2);
     } catch (err) {
       return `Error updating event: ${err.message}`;
@@ -129,9 +141,13 @@ const updateCalendarEventTool = tool(
 );
 
 const deleteCalendarEventTool = tool(
-  async function ({ eventId }) {
+  async function ({ eventId }, config) {
+    const refreshToken = config?.configurable?.refreshToken;
+    if (!refreshToken) {
+      return "Google Calendar is not connected. Please click the 'Connect Calendar' button in the header to authenticate.";
+    }
     try {
-      const result = await deleteEvent(eventId);
+      const result = await deleteEvent(refreshToken, eventId);
       return JSON.stringify(result, null, 2);
     } catch (err) {
       return `Error deleting event: ${err.message}`;
@@ -148,9 +164,13 @@ const deleteCalendarEventTool = tool(
 );
 
 const getCalendarEventTool = tool(
-  async function ({ eventId }) {
+  async function ({ eventId }, config) {
+    const refreshToken = config?.configurable?.refreshToken;
+    if (!refreshToken) {
+      return "Google Calendar is not connected. Please click the 'Connect Calendar' button in the header to authenticate.";
+    }
     try {
-      const result = await getEvent(eventId);
+      const result = await getEvent(refreshToken, eventId);
       return JSON.stringify(result, null, 2);
     } catch (err) {
       return `Error getting event details: ${err.message}`;

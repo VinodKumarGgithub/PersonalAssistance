@@ -1,47 +1,65 @@
 import express from 'express';
-import { exec } from 'child_process';
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { ChatFn } from './index.js';
 import cors from 'cors';
-import { getAuthUrl, getTokensFromCode, setRefreshToken } from './googleCalendar.js';
+import { getAuthUrl, getTokensFromCode } from './googleCalendar.js';
+import { saveToken, getToken, hasToken, deleteToken } from './tokenStore.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const envPath = path.join(__dirname, '.env');
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ─── Chat Endpoint ────────────────────────────────────────
+
 app.post('/chat', async (req, res) => {
     let { message, sessionId } = req.body;
     if (!sessionId) {
-        sessionId = Math.floor(Math.random() * 1000) + 1;
+        return res.status(400).json({ error: 'Session ID is required' });
     }
 
     if (!message) {
         return res.status(400).json({ error: 'Message is required' });
     }
 
-    const result = await ChatFn({ query: message, sessionId });
-    // console.log(result);
-    res.json(result);
+    try {
+        // Look up the user's refresh token from the database
+        const refreshToken = getToken(sessionId);
+
+        const result = await ChatFn({ query: message, sessionId, refreshToken });
+        res.json(result);
+    } catch (err) {
+        console.error('Chat error:', err.message);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+    }
 });
 
-// Google OAuth: Step 1 — Redirect user to Google consent screen
+// ─── Google OAuth: Step 1 — Redirect to consent screen ────
+
 app.get('/auth/google', (req, res) => {
-    const url = getAuthUrl();
+    const { sessionId } = req.query;
+    if (!sessionId) {
+        return res.status(400).send('Missing sessionId');
+    }
+
+    const url = getAuthUrl(sessionId);
     res.redirect(url);
 });
 
-// Google OAuth: Step 2 — Exchange auth code for tokens and auto-save to .env
+// ─── Google OAuth: Step 2 — Handle callback ───────────────
+
 app.get('/oauth/callback', async (req, res) => {
-    const { code } = req.query;
+    const { code, state: sessionId } = req.query;
+
     if (!code) {
         return res.status(400).send('Missing authorization code');
+    }
+    if (!sessionId) {
+        return res.status(400).send('Missing session state');
     }
 
     try {
@@ -49,64 +67,78 @@ app.get('/oauth/callback', async (req, res) => {
         const refreshToken = tokens.refresh_token;
 
         if (refreshToken) {
-            // Update the in-memory env variable
-            process.env.GOOGLE_REFRESH_TOKEN = refreshToken;
-
-            // Also update the OAuth2 client so it works immediately
-            setRefreshToken(refreshToken);
-
-            // Auto-save refresh token to .env file
-            try {
-                let envContent = fs.readFileSync(envPath, 'utf-8');
-                if (envContent.includes('GOOGLE_REFRESH_TOKEN=')) {
-                    envContent = envContent.replace(
-                        /GOOGLE_REFRESH_TOKEN=".*"/,
-                        `GOOGLE_REFRESH_TOKEN="${refreshToken}"`
-                    );
-                } else {
-                    envContent += `\nGOOGLE_REFRESH_TOKEN="${refreshToken}"`;
-                }
-                fs.writeFileSync(envPath, envContent, 'utf-8');
-                console.log('\n✅ Refresh token saved to .env automatically!');
-            } catch (writeErr) {
-                console.error('⚠️  Could not auto-save to .env:', writeErr.message);
-                console.log('Manually add this to .env:');
-                console.log(`GOOGLE_REFRESH_TOKEN="${refreshToken}"`);
-            }
-
-            console.log('\n========================================');
-            console.log('🎉 Google Calendar authenticated!');
-            console.log('========================================\n');
+            // Save to SQLite database
+            saveToken(sessionId, refreshToken);
+            console.log(`✅ Google Calendar connected for session: ${sessionId.substring(0, 8)}...`);
         }
 
+        // Return a page that closes the popup and notifies the parent window
         res.send(`
-            <h1>✅ Google Calendar Connected!</h1>
-            <p>Authentication complete. The refresh token has been saved automatically.</p>
-            <p>You can close this tab and start using calendar features.</p>
+            <!DOCTYPE html>
+            <html>
+            <head><title>Connected!</title></head>
+            <body style="background:#0a0a0f;color:#e8e8f0;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+                <div style="text-align:center;">
+                    <h1 style="font-size:48px;margin:0;">✅</h1>
+                    <h2>Google Calendar Connected!</h2>
+                    <p style="color:#8888a8;">This window will close automatically...</p>
+                </div>
+                <script>
+                    // Notify parent window that OAuth is complete
+                    if (window.opener) {
+                        window.opener.postMessage({ type: 'oauth-complete' }, '*');
+                    }
+                    setTimeout(() => window.close(), 1500);
+                </script>
+            </body>
+            </html>
         `);
     } catch (err) {
         console.error('OAuth error:', err.message);
-        res.status(500).send(`OAuth error: ${err.message}`);
+        res.status(500).send(`
+            <!DOCTYPE html>
+            <html>
+            <body style="background:#0a0a0f;color:#e8e8f0;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+                <div style="text-align:center;">
+                    <h1 style="font-size:48px;margin:0;">❌</h1>
+                    <h2>Authentication Failed</h2>
+                    <p style="color:#ff4d6a;">${err.message}</p>
+                    <p style="color:#8888a8;">Please close this window and try again.</p>
+                </div>
+            </body>
+            </html>
+        `);
     }
 });
 
-const PORT = 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+// ─── Auth Status — check if session is connected ──────────
 
-    // Auto-authenticate: if no refresh token, open browser to start OAuth
-    if (!process.env.GOOGLE_REFRESH_TOKEN) {
-        console.log('\n⚠️  No Google refresh token found. Opening browser for authentication...\n');
-        const authUrl = `http://localhost:${PORT}/auth/google`;
-        // macOS: use 'open', Linux: 'xdg-open', Windows: 'start'
-        exec(`open "${authUrl}"`, (err) => {
-            if (err) {
-                console.log(`Could not open browser automatically. Please visit:\n${authUrl}\n`);
-            }
-        });
-    } else {
-        console.log('✅ Google Calendar authenticated (refresh token found)');
+app.get('/auth/status', (req, res) => {
+    const { sessionId } = req.query;
+    if (!sessionId) {
+        return res.json({ connected: false });
     }
+    res.json({ connected: hasToken(sessionId) });
+});
+
+// ─── Disconnect Google Calendar ───────────────────────────
+
+app.post('/auth/disconnect', (req, res) => {
+    const { sessionId } = req.body;
+    if (!sessionId) {
+        return res.status(400).json({ error: 'Session ID is required' });
+    }
+    deleteToken(sessionId);
+    console.log(`🔌 Google Calendar disconnected for session: ${sessionId.substring(0, 8)}...`);
+    res.json({ disconnected: true });
+});
+
+// ─── Start Server ─────────────────────────────────────────
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`\n🚀 Lara is running at http://localhost:${PORT}`);
+    console.log(`📅 Users can connect their Google Calendar from the chat UI\n`);
 });
 
 export { app };

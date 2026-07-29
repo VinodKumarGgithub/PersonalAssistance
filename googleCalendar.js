@@ -1,51 +1,45 @@
 import { google } from 'googleapis';
+import 'dotenv/config';
 
-// Cached OAuth2 client instance
-let cachedOAuth2Client = null;
+const REDIRECT_URI = process.env.OAUTH_REDIRECT_URI || 'http://localhost:3000/oauth/callback';
 
 /**
- * Creates or returns a cached OAuth2 client using credentials from environment variables.
- * Requires GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN.
+ * Creates a base OAuth2 client (without user credentials).
+ * Uses GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET from env.
  */
-function getOAuth2Client() {
-  if (cachedOAuth2Client) return cachedOAuth2Client;
-
-  cachedOAuth2Client = new google.auth.OAuth2(
+function getBaseOAuth2Client() {
+  return new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    'http://localhost:3000/oauth/callback'
+    REDIRECT_URI
   );
-
-  // If we already have a refresh token, set it
-  if (process.env.GOOGLE_REFRESH_TOKEN) {
-    cachedOAuth2Client.setCredentials({
-      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-    });
-  }
-
-  return cachedOAuth2Client;
 }
 
 /**
- * Updates the cached OAuth2 client with a new refresh token at runtime.
- * Called after successful OAuth callback so the calendar works immediately
- * without a server restart.
- * @param {string} refreshToken
+ * Creates an OAuth2 client authenticated with a specific user's refresh token.
+ * @param {string} refreshToken - The user's refresh token from the token store.
+ * @returns {google.auth.OAuth2}
  */
-function setRefreshToken(refreshToken) {
-  const client = getOAuth2Client();
+function getOAuth2ClientForUser(refreshToken) {
+  const client = getBaseOAuth2Client();
   client.setCredentials({ refresh_token: refreshToken });
+  return client;
 }
 
 /**
- * Returns the Google OAuth2 authorization URL for the Calendar scope.
+ * Returns the Google OAuth2 authorization URL.
+ * Passes sessionId as the `state` parameter so the callback can associate
+ * the token with the correct user session.
+ * @param {string} sessionId
+ * @returns {string}
  */
-function getAuthUrl() {
-  const oauth2Client = getOAuth2Client();
+function getAuthUrl(sessionId) {
+  const oauth2Client = getBaseOAuth2Client();
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
     scope: ['https://www.googleapis.com/auth/calendar'],
+    state: sessionId,
   });
 }
 
@@ -55,35 +49,34 @@ function getAuthUrl() {
  * @returns {Promise<object>} The tokens object containing access_token and refresh_token.
  */
 async function getTokensFromCode(code) {
-  const oauth2Client = getOAuth2Client();
+  const oauth2Client = getBaseOAuth2Client();
   const { tokens } = await oauth2Client.getToken(code);
   return tokens;
 }
 
 /**
- * Lists upcoming calendar events.
- * @param {object} options
- * @param {number} [options.maxResults=10] - Maximum number of events to return.
- * @param {number} [options.daysAhead=7] - Number of days ahead to look for events.
- * @returns {Promise<Array>} Array of event objects with summary, start, end, location, description.
+ * Helper: get an authenticated Calendar client for a specific user.
+ * @param {string} refreshToken
  */
-/**
- * Helper: get an authenticated Calendar client.
- */
-function getCalendarClient() {
-  if (!process.env.GOOGLE_REFRESH_TOKEN) {
+function getCalendarClient(refreshToken) {
+  if (!refreshToken) {
     throw new Error(
-      'Google Calendar not authenticated. Visit http://localhost:3000/auth/google to authenticate.'
+      'Google Calendar not connected. Please click "Connect Calendar" in the chat to authenticate.'
     );
   }
-  return google.calendar({ version: 'v3', auth: getOAuth2Client() });
+  const auth = getOAuth2ClientForUser(refreshToken);
+  return google.calendar({ version: 'v3', auth });
 }
 
 /**
- * Lists upcoming calendar events.
+ * Lists upcoming calendar events for a specific user.
+ * @param {object} options
+ * @param {string} options.refreshToken - The user's refresh token.
+ * @param {number} [options.maxResults=10]
+ * @param {number} [options.daysAhead=7]
  */
-async function listEvents({ maxResults = 10, daysAhead = 7 } = {}) {
-  const calendar = getCalendarClient();
+async function listEvents({ refreshToken, maxResults = 10, daysAhead = 7 } = {}) {
+  const calendar = getCalendarClient(refreshToken);
 
   const now = new Date();
   const timeMax = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
@@ -113,15 +106,16 @@ async function listEvents({ maxResults = 10, daysAhead = 7 } = {}) {
 /**
  * Creates a new calendar event.
  * @param {object} options
+ * @param {string} options.refreshToken - The user's refresh token.
  * @param {string} options.summary - Event title.
- * @param {string} options.startDateTime - ISO 8601 start time (e.g. "2025-07-26T10:00:00+05:30").
+ * @param {string} options.startDateTime - ISO 8601 start time.
  * @param {string} options.endDateTime - ISO 8601 end time.
- * @param {string} [options.description] - Event description.
- * @param {string} [options.location] - Event location.
- * @param {string} [options.timeZone] - Time zone (default: Asia/Kolkata).
+ * @param {string} [options.description]
+ * @param {string} [options.location]
+ * @param {string} [options.timeZone]
  */
-async function createEvent({ summary, startDateTime, endDateTime, description, location, timeZone = 'Asia/Kolkata' }) {
-  const calendar = getCalendarClient();
+async function createEvent({ refreshToken, summary, startDateTime, endDateTime, description, location, timeZone = 'Asia/Kolkata' }) {
+  const calendar = getCalendarClient(refreshToken);
 
   const event = {
     summary,
@@ -149,16 +143,17 @@ async function createEvent({ summary, startDateTime, endDateTime, description, l
 /**
  * Updates an existing calendar event.
  * @param {object} options
+ * @param {string} options.refreshToken - The user's refresh token.
  * @param {string} options.eventId - The event ID to update.
- * @param {string} [options.summary] - New title.
- * @param {string} [options.startDateTime] - New start time (ISO 8601).
- * @param {string} [options.endDateTime] - New end time (ISO 8601).
- * @param {string} [options.description] - New description.
- * @param {string} [options.location] - New location.
- * @param {string} [options.timeZone] - Time zone (default: Asia/Kolkata).
+ * @param {string} [options.summary]
+ * @param {string} [options.startDateTime]
+ * @param {string} [options.endDateTime]
+ * @param {string} [options.description]
+ * @param {string} [options.location]
+ * @param {string} [options.timeZone]
  */
-async function updateEvent({ eventId, summary, startDateTime, endDateTime, description, location, timeZone = 'Asia/Kolkata' }) {
-  const calendar = getCalendarClient();
+async function updateEvent({ refreshToken, eventId, summary, startDateTime, endDateTime, description, location, timeZone = 'Asia/Kolkata' }) {
+  const calendar = getCalendarClient(refreshToken);
 
   // First fetch the existing event
   const existing = await calendar.events.get({
@@ -196,10 +191,11 @@ async function updateEvent({ eventId, summary, startDateTime, endDateTime, descr
 
 /**
  * Deletes a calendar event.
+ * @param {string} refreshToken - The user's refresh token.
  * @param {string} eventId - The event ID to delete.
  */
-async function deleteEvent(eventId) {
-  const calendar = getCalendarClient();
+async function deleteEvent(refreshToken, eventId) {
+  const calendar = getCalendarClient(refreshToken);
 
   await calendar.events.delete({
     calendarId: 'primary',
@@ -211,10 +207,11 @@ async function deleteEvent(eventId) {
 
 /**
  * Gets details of a specific calendar event.
+ * @param {string} refreshToken - The user's refresh token.
  * @param {string} eventId - The event ID.
  */
-async function getEvent(eventId) {
-  const calendar = getCalendarClient();
+async function getEvent(refreshToken, eventId) {
+  const calendar = getCalendarClient(refreshToken);
 
   const response = await calendar.events.get({
     calendarId: 'primary',
@@ -235,6 +232,6 @@ async function getEvent(eventId) {
 }
 
 export {
-  getOAuth2Client, getAuthUrl, getTokensFromCode, setRefreshToken,
+  getAuthUrl, getTokensFromCode,
   listEvents, createEvent, updateEvent, deleteEvent, getEvent,
 };
