@@ -14,16 +14,6 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ─── Verification Routes ───────────────────────────────────
-
-app.get('/privacy', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
-});
-
-app.get('/terms', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'terms.html'));
-});
-
 // ─── Chat Endpoint ────────────────────────────────────────
 
 app.post('/chat', async (req, res) => {
