@@ -20,7 +20,7 @@ An extensible AI assistant built with LangGraph and Node.js that can perform rea
 
 ## 🖼️ Screenshot
 
-![Chat UI](assets/chat-ui.png)
+![Chat UI](assets/home.png)
 
 ## 🏗️ Architecture
 
