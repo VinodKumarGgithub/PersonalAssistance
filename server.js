@@ -14,6 +14,7 @@ const envPath = path.join(__dirname, '.env');
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.post('/chat', async (req, res) => {
     let { message, sessionId } = req.body;
