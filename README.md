@@ -1,6 +1,12 @@
-# 🤖 Lara — AI Personal Assistant
+# 🤖 Lara — Open-Source AI Personal Assistant
 
-An AI-powered personal assistant built with **LangGraph**, **Groq**, and **Google Calendar API**. Lara can search the web, manage your Google Calendar, and hold conversational sessions — all through a simple REST API.
+An extensible AI assistant built with LangGraph and Node.js that can perform real actions through tools.
+
+### Live Demo
+[https://lara-assistant.onrender.com](https://lara-assistant.onrender.com)
+
+### GitHub
+[https://github.com/VinodKumarGgithub/lara-assistant](https://github.com/VinodKumarGgithub/lara-assistant/)
 
 ## ✨ Features
 
