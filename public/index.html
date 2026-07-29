@@ -4,9 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lara — Personal Assistant</title>
+    <title>Lara - Personal Assistance</title>
     <meta name="description"
-        content="Lara is your AI-powered personal assistant with Google Calendar integration and web search.">
+        content="Lara - Personal Assistance is an AI-powered personal assistant designed to manage your Google Calendar events and web search.">
+    <link rel="icon" type="image/png" href="logo.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
@@ -90,12 +91,19 @@
             width: 38px;
             height: 38px;
             border-radius: 12px;
-            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
             box-shadow: 0 0 20px var(--accent-glow);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+        }
+
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .header-info h1 {
@@ -337,15 +345,22 @@
         }
 
         .welcome-icon {
-            width: 72px;
-            height: 72px;
-            border-radius: 22px;
-            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            width: 80px;
+            height: 80px;
+            border-radius: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 36px;
-            box-shadow: 0 0 40px var(--accent-glow-strong);
+            box-shadow: 0 0 45px var(--accent-glow-strong);
+            overflow: hidden;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+        }
+
+        .welcome-logo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .welcome h2 {
@@ -422,8 +437,16 @@
         }
 
         .msg-avatar.ai-avatar {
-            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            background: var(--bg-tertiary);
             box-shadow: 0 0 12px var(--accent-glow);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .ai-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .msg-avatar.user-avatar {
@@ -754,6 +777,25 @@
                 opacity: 1;
                 transform: translateY(0);
             }
+        /* ─── Footer Links (Google Verification) ──── */
+
+        .app-footer {
+            text-align: center;
+            padding: 10px 0 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .app-footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin: 0 4px;
+            transition: color var(--transition);
+        }
+
+        .app-footer a:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
         }
 
         /* ─── Responsive ──────────────────────────── */
@@ -789,9 +831,9 @@
         <!-- Header -->
         <header class="header" id="app-header">
             <div class="header-left">
-                <div class="avatar">✦</div>
+                <div class="avatar"><img src="logo.png" alt="Lara - Personal Assistance Logo" class="avatar-img"></div>
                 <div class="header-info">
-                    <h1>Lara</h1>
+                    <h1>Lara - Personal Assistance</h1>
                     <div class="status">
                         <span class="status-dot"></span>
                         Online
@@ -806,10 +848,9 @@
         <!-- Chat Messages -->
         <div class="chat-area" id="chat-area">
             <div class="welcome" id="welcome-screen">
-                <div class="welcome-icon">✦</div>
-                <h2>Hey, I'm Lara</h2>
-                <p>Your personal AI assistant. I can search the web, manage your Google Calendar, and help with everyday
-                    tasks.</p>
+                <div class="welcome-icon"><img src="logo.png" alt="Lara - Personal Assistance Logo" class="welcome-logo"></div>
+                <h2>Hey, I'm Lara - Personal Assistance</h2>
+                <p>Lara - Personal Assistance is an AI-powered assistant designed to manage your Google Calendar events, schedule meetings with video links, and help with everyday tasks.</p>
                 <div class="suggestions">
                     <button class="suggestion" data-msg="What's on my calendar this week?">📅 My calendar this
                         week</button>
@@ -856,8 +897,15 @@
                     </svg>
                 </button>
             </div>
-            <div class="input-hint">Lara can search the web & manage your calendar</div>
+            <div class="input-hint">Lara - Personal Assistance can search the web & manage your Google Calendar</div>
         </div>
+
+        <!-- Footer Privacy & Terms links -->
+        <footer class="app-footer">
+            <span>Lara - Personal Assistance</span> &bull; 
+            <a href="/privacy.html" target="_blank">Privacy Policy</a> &bull; 
+            <a href="/terms.html" target="_blank">Terms of Service</a>
+        </footer>
     </div>
 
     <script>
@@ -1044,7 +1092,11 @@
 
             const avatar = document.createElement('div');
             avatar.className = `msg-avatar ${role === 'ai' ? 'ai-avatar' : 'user-avatar'}`;
-            avatar.textContent = role === 'ai' ? '✦' : '•';
+            if (role === 'ai') {
+                avatar.innerHTML = '<img src="logo.png" alt="Lara" class="ai-avatar-img">';
+            } else {
+                avatar.textContent = '•';
+            }
 
             const bubble = document.createElement('div');
             bubble.className = 'bubble';
@@ -1069,7 +1121,7 @@
 
             const avatar = document.createElement('div');
             avatar.className = 'msg-avatar ai-avatar';
-            avatar.textContent = '✦';
+            avatar.innerHTML = '<img src="logo.png" alt="Lara" class="ai-avatar-img">';
 
             const bubble = document.createElement('div');
             bubble.className = 'typing-bubble';
