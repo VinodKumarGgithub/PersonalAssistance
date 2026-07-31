@@ -25,7 +25,7 @@ const app = new StateGraph(MessagesAnnotation)
 .addEdge('__start__','llm')
 .addConditionalEdges('llm',continueCondtion)
 .addEdge('tools', 'llm')
-.compile({ checkpointer });
+    .compile({ checkpointer, recursionLimit: 15 });
 
 
 export { app, checkpointer }
