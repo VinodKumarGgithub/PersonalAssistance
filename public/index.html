@@ -466,6 +466,24 @@
             white-space: pre-wrap;
         }
 
+        .bubble.error {
+            background: rgba(255, 77, 106, 0.08);
+            border: 1px solid rgba(255, 77, 106, 0.25);
+            color: #ff8099;
+        }
+
+        /* ─── Chat Images ─────────────────────────── */
+        .chat-image {
+            max-width: 100%;
+            max-height: 320px;
+            border-radius: var(--radius-sm);
+            margin: 6px 0;
+            display: block;
+            object-fit: contain;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+        }
+
         /* ─── Markdown Styles ─────────────────────── */
 
         .bubble p {
@@ -888,9 +906,19 @@
 
         // Configuration & Setup
         marked.setOptions({
-            breaks: true, // line breaks like ChatGPT
-            gfm: true     // GitHub markdown style
+            breaks: true,
+            gfm: true
         });
+
+        // Custom renderer: open links in new tab, render images with CSS class
+        const renderer = new marked.Renderer();
+        renderer.link = ({ href, title, text }) => {
+            return `<a href="${href}" target="_blank" rel="noopener noreferrer" title="${title || ''}">${text}</a>`;
+        };
+        renderer.image = ({ href, title, text }) => {
+            return `<img src="${href}" alt="${text || ''}" title="${title || ''}" class="chat-image" loading="lazy" onerror="this.style.display='none'">`;
+        };
+        marked.use({ renderer });
 
         const chatArea = document.getElementById('chat-area');
         const chatInput = document.getElementById('chat-input');
@@ -1051,10 +1079,16 @@
 
                 const data = await res.json();
                 typingEl.remove();
-                appendMessage((data.message) || 'Sorry, I couldn\'t process that.', 'ai');
+
+                if (!res.ok || data.error) {
+                    // Server returned an error — show it as an error bubble
+                    appendMessage(data.error || `⚠️ Server error (${res.status}). Please try again.`, 'ai', true);
+                } else {
+                    appendMessage(data.message || '⚠️ I received an empty response. Please try again.', 'ai');
+                }
             } catch (err) {
                 typingEl.remove();
-                appendMessage('Something went wrong. Please make sure the server is running.', 'ai');
+                appendMessage('⚠️ Could not reach the server. Please check your internet connection or make sure the server is running.', 'ai', true);
             } finally {
                 isWaiting = false;
                 chatInput.focus();
@@ -1062,7 +1096,7 @@
         }
 
         // ─── Append message ────────────────────────
-        function appendMessage(text, role) {
+        function appendMessage(text, role, isError = false) {
             const row = document.createElement('div');
             row.className = `message-row ${role}`;
 
@@ -1075,9 +1109,12 @@
             }
 
             const bubble = document.createElement('div');
-            bubble.className = 'bubble';
+            bubble.className = isError ? 'bubble error' : 'bubble';
 
-            if (role === 'ai') {
+            if (isError) {
+                // Error messages render as plain text for safety
+                bubble.textContent = text;
+            } else if (role === 'ai') {
                 // Render markdown for AI responses
                 bubble.innerHTML = marked.parse(text);
             } else {

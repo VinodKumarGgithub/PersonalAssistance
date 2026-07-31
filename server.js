@@ -21,7 +21,6 @@ app.post('/chat', async (req, res) => {
     if (!sessionId) {
         return res.status(400).json({ error: 'Session ID is required' });
     }
-
     if (!message) {
         return res.status(400).json({ error: 'Message is required' });
     }
@@ -29,12 +28,26 @@ app.post('/chat', async (req, res) => {
     try {
         // Look up the user's refresh token from the database
         const refreshToken = getToken(sessionId);
-
         const result = await ChatFn({ query: message, sessionId, refreshToken });
         res.json(result);
     } catch (err) {
-        console.error('Chat error:', err.message);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        const status = err?.status || err?.response?.status || 500;
+        const code = err?.error?.code || err?.code || 'unknown_error';
+        const errMsg = err?.error?.message || err?.message || 'Unknown error';
+
+        console.error(`❌ Chat endpoint error [status=${status}, code=${code}]:`, errMsg);
+
+        // Map common LLM API errors to meaningful messages
+        if (status === 429) {
+            return res.status(429).json({ error: '⚠️ Too many requests. Please wait a moment and try again.' });
+        }
+        if (status === 401 || status === 403) {
+            return res.status(500).json({ error: '⚠️ AI service authentication error. Please check your GROQ_API_KEY.' });
+        }
+        if (status === 503 || status === 502) {
+            return res.status(503).json({ error: '⚠️ AI service temporarily unavailable. Please try again shortly.' });
+        }
+        res.status(500).json({ error: `⚠️ Something went wrong: ${errMsg}` });
     }
 });
 

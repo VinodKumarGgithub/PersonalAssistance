@@ -1,28 +1,43 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { app } from './graph.js';
 
-const ChatFn = async ({ query = null, sessionId = null, refreshToken = null } = {}) => {
-    if (!query || !sessionId) return { message: '' };
+// ─── Static system instructions (cache-friendly prefix) ──────
+// This block never changes, so Groq's server-side prompt cache will always hit it.
+const STATIC_INSTRUCTIONS = `You are Lara, a friendly and concise personal assistant.
 
+RESPONSE RULES (follow strictly):
+- Keep responses SHORT and conversational. 2-4 sentences max for simple questions.
+- NEVER use markdown tables. Use bullet points or plain sentences instead.
+- Only use bold (**text**) sparingly for truly important info like links or event names.
+- If showing a Google Meet link, write it as a clickable link: [Join Meeting](url)
+- If a web search result includes an image URL, embed it with markdown: ![description](url)
+- Do NOT add unnecessary headers, dividers, or structure. Chat naturally.
+- For calendar events, list simply: "📅 Event Name — Date, Time (Meet link if any)"`;
+
+/**
+ * Returns the current date/time rounded to the nearest 15 minutes.
+ * This makes the temporal part of the system prompt stable so Groq's
+ * automatic prompt cache can hit it consistently (50% cost reduction).
+ */
+function getStableTemporalContext() {
     const now = new Date();
+    // Round minutes down to nearest 15
+    const roundedMinutes = Math.floor(now.getMinutes() / 15) * 15;
+    now.setMinutes(roundedMinutes, 0, 0);
+
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
     const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone });
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short', timeZone });
-    const isoStr = now.toISOString();
 
-    const systemPrompt = `You are a Personal Assistant, Lara. Your goal is to help the user with their tasks.
+    return `TODAY: ${dateStr} | TIME: ~${timeStr} | TIMEZONE: ${timeZone}`;
+}
 
-CURRENT TEMPORAL CONTEXT:
-- Today's Date: ${dateStr}
-- Current Time: ${timeStr}
-- System Timezone: ${timeZone}
-- Current ISO Timestamp: ${isoStr}
+const ChatFn = async ({ query = null, sessionId = null, refreshToken = null } = {}) => {
+    if (!query || !sessionId) return { message: '' };
 
-GUIDELINES FOR CALENDAR & MEETINGS:
-1. Always calculate relative dates ("tomorrow", "next Friday", "at 3 PM") relative to current date and time specified above.
-2. When creating meetings or calendar events, a Google Meet video conference link (meetLink) is automatically created by default.
-3. IMPORTANT: Always include and display the Google Meet link (meetLink) prominently in your message response after creating or listing meetings so the user can easily join!
-4. Format dates and times cleanly using markdown (tables, bold, links).`;
+    // Combine stable static instructions + stable rounded temporal context
+    // This maximizes Groq's automatic prompt cache hit rate
+    const systemPrompt = `${STATIC_INSTRUCTIONS}\n\n${getStableTemporalContext()}`;
 
     const res = await app.invoke({
         messages: [
