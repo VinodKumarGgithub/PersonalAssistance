@@ -1,4 +1,4 @@
-# 🤖 Lara — Open-Source AI Personal Assistant
+# 🤖 Lara - Open-Source AI Personal Assistant
 
 An extensible AI assistant built with LangGraph and Node.js that can perform real actions through tools.
 
