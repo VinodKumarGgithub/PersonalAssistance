@@ -9,7 +9,7 @@
         content="Lara - Personal Assistance is an AI-powered personal assistant designed to manage your Google Calendar events and web search.">
     <link rel="icon" type="image/png" href="logo.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
     <style>
         *,
         *::before,
@@ -910,15 +910,15 @@
             gfm: true
         });
 
-        // Custom renderer: open links in new tab, render images with CSS class
-        const renderer = new marked.Renderer();
-        renderer.link = ({ href, title, text }) => {
-            return `<a href="${href}" target="_blank" rel="noopener noreferrer" title="${title || ''}">${text}</a>`;
-        };
-        renderer.image = ({ href, title, text }) => {
-            return `<img src="${href}" alt="${text || ''}" title="${title || ''}" class="chat-image" loading="lazy" onerror="this.style.display='none'">`;
-        };
-        marked.use({ renderer });
+        // Open links in new tab for security
+        marked.use({
+            renderer: {
+                link(token) {
+                    return `<a href="${token.href}" target="_blank" rel="noopener noreferrer">${token.text}</a>`;
+                }
+            }
+        });
+
 
         const chatArea = document.getElementById('chat-area');
         const chatInput = document.getElementById('chat-input');
@@ -1115,7 +1115,7 @@
                 // Error messages render as plain text for safety
                 bubble.textContent = text;
             } else if (role === 'ai') {
-                // Render markdown for AI responses
+                // Linkify bare URLs first, then render markdown
                 bubble.innerHTML = marked.parse(text);
             } else {
                 bubble.textContent = text;
